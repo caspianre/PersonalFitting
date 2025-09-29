@@ -14,60 +14,30 @@ type RecordView = {
   timestamp: number;
 };
 
-export function RecordList() {
-  const { address } = useAccount();
+function RecordRow({ index, address }: { index: number; address: `0x${string}` }) {
   const { instance } = useZamaInstance();
   const signer = useEthersSigner();
-  const [decryptingIndex, setDecryptingIndex] = useState<number | null>(null);
-  const [decrypted, setDecrypted] = useState<Record<number, {height: string; weight: string; systolic: string; diastolic: string;}>>({});
+  const [decrypting, setDecrypting] = useState(false);
+  const [decrypted, setDecrypted] = useState<{height?: string; weight?: string; systolic?: string; diastolic?: string}>({});
 
-  const { data: count } = useReadContract({
+  const { data: recData } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
-    functionName: 'getRecordCount',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    functionName: 'getRecord',
+    args: [address, BigInt(index)],
   });
 
-  const recordIndices = useMemo(() => Array.from({ length: Number(count || 0) }, (_, i) => i), [count]);
-
-  const records = recordIndices.map((i) => ({ index: i }));
-
-  const [fetched, setFetched] = useState<Record<number, RecordView>>({});
-
-  const fetchRecord = async (index: number) => {
-    if (!address) return;
-    // dynamic import of viem read as wagmi hook already used for count; for individual records, use public client via wagmi is not necessary here
-    const { getPublicClient } = await import('wagmi/actions');
-    const publicClient = getPublicClient();
-    const data: readonly [string, string, string, string, bigint] = await publicClient.readContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'getRecord',
-      args: [address, BigInt(index)],
-    }) as any;
-    const view: RecordView = {
-      index,
-      heightHandle: data[0] as string,
-      weightHandle: data[1] as string,
-      systolicHandle: data[2] as string,
-      diastolicHandle: data[3] as string,
-      timestamp: Number(data[4] as bigint),
-    };
-    setFetched((prev) => ({ ...prev, [index]: view }));
-  };
-
-  const decryptRecord = async (index: number) => {
-    if (!instance || !address || !fetched[index]) return;
-    const rec = fetched[index];
-    setDecryptingIndex(index);
+  const decrypt = async () => {
+    if (!instance || !recData) return;
+    const [heightHandle, weightHandle, systolicHandle, diastolicHandle] = recData as readonly [string, string, string, string, bigint];
+    setDecrypting(true);
     try {
       const keypair = instance.generateKeypair();
       const handleContractPairs = [
-        { handle: rec.heightHandle, contractAddress: CONTRACT_ADDRESS },
-        { handle: rec.weightHandle, contractAddress: CONTRACT_ADDRESS },
-        { handle: rec.systolicHandle, contractAddress: CONTRACT_ADDRESS },
-        { handle: rec.diastolicHandle, contractAddress: CONTRACT_ADDRESS },
+        { handle: heightHandle as string, contractAddress: CONTRACT_ADDRESS },
+        { handle: weightHandle as string, contractAddress: CONTRACT_ADDRESS },
+        { handle: systolicHandle as string, contractAddress: CONTRACT_ADDRESS },
+        { handle: diastolicHandle as string, contractAddress: CONTRACT_ADDRESS },
       ];
       const startTimeStamp = Math.floor(Date.now() / 1000).toString();
       const durationDays = '10';
@@ -99,22 +69,60 @@ export function RecordList() {
         durationDays
       );
 
-      setDecrypted((prev) => ({
-        ...prev,
-        [index]: {
-          height: String(result[rec.heightHandle] ?? ''),
-          weight: String(result[rec.weightHandle] ?? ''),
-          systolic: String(result[rec.systolicHandle] ?? ''),
-          diastolic: String(result[rec.diastolicHandle] ?? ''),
-        },
-      }));
+      setDecrypted({
+        height: String(result[heightHandle as string] ?? ''),
+        weight: String(result[weightHandle as string] ?? ''),
+        systolic: String(result[systolicHandle as string] ?? ''),
+        diastolic: String(result[diastolicHandle as string] ?? ''),
+      });
     } catch (err) {
       console.error('Decrypt error:', err);
       alert(`Failed to decrypt: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setDecryptingIndex(null);
+      setDecrypting(false);
     }
   };
+
+  if (!recData) {
+    return (
+      <tr>
+        <td>{index}</td>
+        <td colSpan={4}>Loading...</td>
+        <td>-</td>
+      </tr>
+    );
+  }
+
+  const time = new Date(Number((recData as any)[4]) * 1000).toLocaleString();
+  const hasDecrypted = Boolean(decrypted.height);
+
+  return (
+    <tr>
+      <td>{index}</td>
+      <td>{time}</td>
+      <td>{hasDecrypted ? `${decrypted.height} cm` : '***'}</td>
+      <td>{hasDecrypted ? `${decrypted.weight}` : '***'}</td>
+      <td>{hasDecrypted ? `${decrypted.systolic}/${decrypted.diastolic}` : '***'}</td>
+      <td>
+        <button className="action-btn" disabled={decrypting} onClick={decrypt}>
+          {decrypting ? 'Decrypting...' : 'Decrypt'}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+export function RecordList() {
+  const { address } = useAccount();
+  const { data: count } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getRecordCount',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
+
+  const recordIndices = useMemo(() => Array.from({ length: Number(count || 0) }, (_, i) => i), [count]);
 
   if (!address) {
     return (
@@ -151,38 +159,12 @@ export function RecordList() {
             </tr>
           </thead>
           <tbody>
-            {records.map(({ index }) => {
-              const rec = fetched[index];
-              const dec = decrypted[index];
-              return (
-                <tr key={index}>
-                  <td>{index}</td>
-                  <td>
-                    {rec ? new Date(rec.timestamp * 1000).toLocaleString() : (
-                      <button className="link-btn" onClick={() => fetchRecord(index)}>Load</button>
-                    )}
-                  </td>
-                  <td>{dec ? `${dec.height} cm` : (rec ? '***' : '-')}</td>
-                  <td>{dec ? `${dec.weight}` : (rec ? '***' : '-')}</td>
-                  <td>{dec ? `${dec.systolic}/${dec.diastolic}` : (rec ? '***' : '-')}</td>
-                  <td>
-                    {rec && (
-                      <button
-                        className="action-btn"
-                        disabled={decryptingIndex === index}
-                        onClick={() => decryptRecord(index)}
-                      >
-                        {decryptingIndex === index ? 'Decrypting...' : 'Decrypt'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {recordIndices.map((i) => (
+              <RecordRow key={i} index={i} address={address as `0x${string}`} />
+            ))}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
-

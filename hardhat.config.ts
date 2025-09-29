@@ -6,16 +6,19 @@ import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import type { HardhatUserConfig } from "hardhat/config";
+import "dotenv/config";
 import { vars } from "hardhat/config";
 import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/FHECounter";
 
-// Run 'npx hardhat vars setup' to see the list of variables that need to be set
-
+// Prefer .env variables when present. Fallback to hardhat vars for CI/local.
+const PRIVATE_KEY_ENV = process.env.PRIVATE_KEY || ""; // without 0x in .env
+const PRIVATE_KEY = PRIVATE_KEY_ENV ? (PRIVATE_KEY_ENV.startsWith("0x") ? PRIVATE_KEY_ENV : `0x${PRIVATE_KEY_ENV}`) : "";
 const MNEMONIC: string = vars.get("MNEMONIC", "test test test test test test test test test test test junk");
-const INFURA_API_KEY: string = vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+const INFURA_API_KEY: string = process.env.INFURA_API_KEY || vars.get("INFURA_API_KEY", "");
+const ETHERSCAN_KEY: string = process.env.ETHERSCAN_API_KEY || vars.get("ETHERSCAN_API_KEY", "");
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -24,7 +27,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      sepolia: vars.get("ETHERSCAN_API_KEY", ""),
+      sepolia: ETHERSCAN_KEY,
     },
   },
   gasReporter: {
@@ -49,7 +52,8 @@ const config: HardhatUserConfig = {
       url: "http://localhost:8545",
     },
     sepolia: {
-      accounts: {
+      // Use single PRIVATE_KEY if provided, otherwise fallback to mnemonic
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : {
         mnemonic: MNEMONIC,
         path: "m/44'/60'/0'/0/",
         count: 10,

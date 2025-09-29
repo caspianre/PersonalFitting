@@ -1,6 +1,6 @@
 // PersonalFitnessTracker contract on Sepolia (update after deploy)
 // IMPORTANT: Copy the ABI from deployments/sepolia after deploy, and update the address below.
-export const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const CONTRACT_ADDRESS = '0x47432B5d028882727d16c25CFdb12F45180B8d02';
 
 // ABI copied from compiled/deployed artifacts of PersonalFitnessTracker
 export const CONTRACT_ABI = [
