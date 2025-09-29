@@ -98,14 +98,35 @@ function RecordRow({ index, address }: { index: number; address: `0x${string}` }
 
   return (
     <tr>
-      <td>{index}</td>
-      <td>{time}</td>
-      <td>{hasDecrypted ? `${decrypted.height} cm` : '***'}</td>
-      <td>{hasDecrypted ? `${decrypted.weight}` : '***'}</td>
-      <td>{hasDecrypted ? `${decrypted.systolic}/${decrypted.diastolic}` : '***'}</td>
+      <td>#{index + 1}</td>
+      <td className="timestamp">{time}</td>
+      <td>
+        <span className={hasDecrypted ? 'decrypted-value' : 'encrypted-value'}>
+          {hasDecrypted ? `📏 ${decrypted.height} cm` : '🔒 ***'}
+        </span>
+      </td>
+      <td>
+        <span className={hasDecrypted ? 'decrypted-value' : 'encrypted-value'}>
+          {hasDecrypted ? `⚖️ ${decrypted.weight} kg` : '🔒 ***'}
+        </span>
+      </td>
+      <td>
+        <span className={hasDecrypted ? 'decrypted-value' : 'encrypted-value'}>
+          {hasDecrypted ? `💗 ${decrypted.systolic}/${decrypted.diastolic}` : '🔒 ***'}
+        </span>
+      </td>
       <td>
         <button className="action-btn" disabled={decrypting} onClick={decrypt}>
-          {decrypting ? 'Decrypting...' : 'Decrypt'}
+          {decrypting ? (
+            <>
+              <div className="decrypt-spinner"></div>
+              Decrypting...
+            </>
+          ) : (
+            <>
+              🔓 Decrypt
+            </>
+          )}
         </button>
       </td>
     </tr>
@@ -146,24 +167,49 @@ export function RecordList() {
   return (
     <div className="record-list-container">
       <div className="status-card">
-        <h2 className="status-title">Your Fitness Records</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Time</th>
-              <th>Height</th>
-              <th>Weight</th>
-              <th>BP</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recordIndices.map((i) => (
-              <RecordRow key={i} index={i} address={address as `0x${string}`} />
-            ))}
-          </tbody>
-        </table>
+        <h2 className="status-title">
+          <span className="status-icon">📊</span>
+          Your Fitness Records
+        </h2>
+
+        <div className="record-stats">
+          <div className="stat-item">
+            <span className="stat-value">{Number(count || 0)}</span>
+            <span className="stat-label">Total Records</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">🔒</span>
+            <span className="stat-label">Encrypted</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">🛡️</span>
+            <span className="stat-label">Secure</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">🔐</span>
+            <span className="stat-label">Private</span>
+          </div>
+        </div>
+
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Record</th>
+                <th>Date & Time</th>
+                <th>Height</th>
+                <th>Weight</th>
+                <th>Blood Pressure</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recordIndices.map((i) => (
+                <RecordRow key={i} index={i} address={address as `0x${string}`} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
