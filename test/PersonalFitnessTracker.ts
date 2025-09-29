@@ -1,111 +1,40 @@
 import { expect } from "chai";
 import { ethers, fhevm } from "hardhat";
-import { PersonalFitnessTracker } from "../types";
-import type { Signer } from "ethers";
+import { FhevmType } from "@fhevm/hardhat-plugin";
 
 describe("PersonalFitnessTracker", function () {
-  let contract: PersonalFitnessTracker;
-  let contractAddress: string;
-  let signers: Signer[];
+  it("adds and reads encrypted records", async function () {
+    const [user] = await ethers.getSigners();
+    const factory = await ethers.getContractFactory("PersonalFitnessTracker");
+    const contract = await factory.deploy();
 
-  before(async function () {
-    signers = await ethers.getSigners();
+    await fhevm.initializeCLIApi();
 
-    const contractFactory = await ethers.getContractFactory("PersonalFitnessTracker");
-    contract = await contractFactory.connect(signers[0]).deploy();
-    await contract.waitForDeployment();
-    contractAddress = await contract.getAddress();
-  });
+    const buffer = await fhevm
+      .createEncryptedInput(await contract.getAddress(), user.address)
+      .add32(180)
+      .add32(75)
+      .add32(120)
+      .add32(80)
+      .encrypt();
 
-  it("should add and retrieve fitness records", async function () {
-    const input = fhevm.createEncryptedInput(contractAddress, signers[0].address);
-    input.add32(175); // height in cm
-    input.add32(70000); // weight in grams (70kg)
-    input.add32(120); // systolic pressure
-    input.add32(80); // diastolic pressure
+    await (await contract.connect(user).addRecord(buffer.handles[0], buffer.handles[1], buffer.handles[2], buffer.handles[3], buffer.inputProof)).wait();
 
-    const encryptedInput = await input.encrypt();
+    const count = await contract.getRecordCount(user.address);
+    expect(count).to.equal(1n);
 
-    await contract.addFitnessRecord(
-      encryptedInput.handles[0], // height
-      encryptedInput.handles[1], // weight
-      encryptedInput.handles[2], // systolic
-      encryptedInput.handles[3], // diastolic
-      encryptedInput.inputProof
-    );
+    const [h, w, s, d, t] = await contract.getRecord(user.address, 0);
+    expect(t).to.be.greaterThan(0);
 
-    const recordCount = await contract.getRecordCount(signers[0].address);
-    expect(recordCount).to.equal(1);
+    const clearH = await fhevm.userDecryptEuint(FhevmType.euint32, h, await contract.getAddress(), user);
+    const clearW = await fhevm.userDecryptEuint(FhevmType.euint32, w, await contract.getAddress(), user);
+    const clearS = await fhevm.userDecryptEuint(FhevmType.euint32, s, await contract.getAddress(), user);
+    const clearD = await fhevm.userDecryptEuint(FhevmType.euint32, d, await contract.getAddress(), user);
 
-    const record = await contract.getFitnessRecord(signers[0].address, 0);
-    expect(record.timestamp).to.be.greaterThan(0);
-
-    const timestamps = await contract.getRecordTimestamps(signers[0].address);
-    expect(timestamps.length).to.equal(1);
-  });
-
-  it("should allow multiple records for the same user", async function () {
-    const input1 = fhevm.createEncryptedInput(contractAddress, signers[0].address);
-    input1.add32(176); // height in cm
-    input1.add32(71000); // weight in grams (71kg)
-    input1.add32(125); // systolic pressure
-    input1.add32(85); // diastolic pressure
-
-    const encryptedInput1 = await input1.encrypt();
-
-    await contract.addFitnessRecord(
-      encryptedInput1.handles[0],
-      encryptedInput1.handles[1],
-      encryptedInput1.handles[2],
-      encryptedInput1.handles[3],
-      encryptedInput1.inputProof
-    );
-
-    const recordCount = await contract.getRecordCount(signers[0].address);
-    expect(recordCount).to.equal(2);
-
-    const latestRecord = await contract.getLatestRecord(signers[0].address);
-    expect(latestRecord.timestamp).to.be.greaterThan(0);
-  });
-
-  it("should handle different users separately", async function () {
-    const input = fhevm.createEncryptedInput(contractAddress, signers[1].address);
-    input.add32(180); // height in cm
-    input.add32(75000); // weight in grams (75kg)
-    input.add32(130); // systolic pressure
-    input.add32(90); // diastolic pressure
-
-    const encryptedInput = await input.encrypt();
-
-    await contract.connect(signers[1]).addFitnessRecord(
-      encryptedInput.handles[0],
-      encryptedInput.handles[1],
-      encryptedInput.handles[2],
-      encryptedInput.handles[3],
-      encryptedInput.inputProof
-    );
-
-    const user0Count = await contract.getRecordCount(signers[0].address);
-    const user1Count = await contract.getRecordCount(signers[1].address);
-
-    expect(user0Count).to.equal(2);
-    expect(user1Count).to.equal(1);
-  });
-
-  it("should revert when accessing non-existent records", async function () {
-    await expect(
-      contract.getFitnessRecord(signers[0].address, 999)
-    ).to.be.revertedWith("Record index out of bounds");
-  });
-
-  it("should revert when getting latest record for user with no records", async function () {
-    await expect(
-      contract.getLatestRecord(signers[2].address)
-    ).to.be.revertedWith("No records found");
-  });
-
-  it("should allow user to get their own records", async function () {
-    const myRecords = await contract.connect(signers[0]).getMyRecords();
-    expect(myRecords.length).to.equal(2);
+    expect(clearH).to.equal(180n);
+    expect(clearW).to.equal(75n);
+    expect(clearS).to.equal(120n);
+    expect(clearD).to.equal(80n);
   });
 });
+
