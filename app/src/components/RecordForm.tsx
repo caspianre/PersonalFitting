@@ -91,6 +91,7 @@ export function RecordForm() {
     <div className="record-form-container">
       <div className="record-card">
         <h2 className="record-title">Add Fitness Record</h2>
+        <div>All your personal data is encrypted. Your data belongs to you only.</div>
         <form onSubmit={handleSubmit} className="record-form">
           <div className="form-grid">
             <div className="form-field">
