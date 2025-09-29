@@ -91,11 +91,17 @@ export function RecordForm() {
     <div className="record-form-container">
       <div className="record-card">
         <h2 className="record-title">Add Fitness Record</h2>
-        <div>All your personal data is encrypted. Your data belongs to you only.</div>
+        <div className="record-subtitle">
+          <div className="privacy-icon">🔒</div>
+          All your personal data is encrypted. Your data belongs to you only.
+        </div>
         <form onSubmit={handleSubmit} className="record-form">
           <div className="form-grid">
             <div className="form-field">
-              <label className="label">Height (cm)</label>
+              <label className="label">
+                <span className="field-icon">📏</span>
+                Height (cm)
+              </label>
               <input
                 type="number"
                 min="0"
@@ -108,7 +114,10 @@ export function RecordForm() {
             </div>
 
             <div className="form-field">
-              <label className="label">Weight (kg)</label>
+              <label className="label">
+                <span className="field-icon">⚖️</span>
+                Weight (kg)
+              </label>
               <input
                 type="number"
                 min="0"
@@ -122,7 +131,10 @@ export function RecordForm() {
             </div>
 
             <div className="form-field">
-              <label className="label">Systolic</label>
+              <label className="label">
+                <span className="field-icon">💗</span>
+                Systolic Blood Pressure
+              </label>
               <input
                 type="number"
                 min="0"
@@ -135,7 +147,10 @@ export function RecordForm() {
             </div>
 
             <div className="form-field">
-              <label className="label">Diastolic</label>
+              <label className="label">
+                <span className="field-icon">💙</span>
+                Diastolic Blood Pressure
+              </label>
               <input
                 type="number"
                 min="0"
@@ -154,15 +169,24 @@ export function RecordForm() {
               className="submit-btn"
               disabled={zamaLoading || isSubmitting || isConfirming}
             >
+              {(zamaLoading || isSubmitting || isConfirming) && (
+                <div className="btn-spinner"></div>
+              )}
               {zamaLoading && 'Initializing encryption...'}
               {!zamaLoading && isSubmitting && !isConfirming && 'Submitting...'}
               {!zamaLoading && isConfirming && 'Confirming...'}
-              {!zamaLoading && !isSubmitting && !isConfirming && 'Submit Record'}
+              {!zamaLoading && !isSubmitting && !isConfirming && (
+                <>
+                  <span>🔐</span>
+                  Submit Encrypted Record
+                </>
+              )}
             </button>
           </div>
 
           {isSuccess && (
             <div className="success">
+              <span className="success-icon">✅</span>
               Record submitted successfully!
             </div>
           )}

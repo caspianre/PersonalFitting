@@ -7,11 +7,20 @@ export function Header() {
       <div className="header-container">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="header-title">
-              Personal Fitness Tracker
-            </h1>
+            <div className="header-logo">
+              💪
+            </div>
+            <div>
+              <h1 className="header-title">
+                FitSecure
+              </h1>
+              <span className="header-subtitle">Privacy-First Fitness Tracking</span>
+            </div>
+            <div className="header-badge">FHE Encrypted</div>
           </div>
-          <ConnectButton />
+          <div className="header-actions">
+            <ConnectButton />
+          </div>
         </div>
       </div>
     </header>
