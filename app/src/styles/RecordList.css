@@ -1,0 +1,10 @@
+.record-list-container { }
+.table { width: 100%; border-collapse: collapse; background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+.table th, .table td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 0.9rem; }
+.table th { background: #f9fafb; color: #374151; font-weight: 600; }
+.action-btn { padding: 0.25rem 0.5rem; background: #10b981; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; }
+.action-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.link-btn { background: none; border: none; color: #2563eb; cursor: pointer; padding: 0; }
+.status-card { background: white; border-radius: 0.5rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.status-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; }
+
