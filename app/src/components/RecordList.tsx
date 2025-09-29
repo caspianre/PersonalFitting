@@ -5,14 +5,6 @@ import { useZamaInstance } from '../hooks/useZamaInstance';
 import { useEthersSigner } from '../hooks/useEthersSigner';
 import '../styles/RecordList.css';
 
-type RecordView = {
-  index: number;
-  heightHandle: string;
-  weightHandle: string;
-  systolicHandle: string;
-  diastolicHandle: string;
-  timestamp: number;
-};
 
 function RecordRow({ index, address }: { index: number; address: `0x${string}` }) {
   const { instance } = useZamaInstance();
